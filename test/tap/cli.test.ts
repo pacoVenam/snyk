@@ -241,10 +241,11 @@ test('cli tests error paths', async (t) => {
 
 test('snyk ignore - all options', async (t) => {
   const clock = sinon.useFakeTimers(new Date(2016, 11, 1).getTime());
+  const path = 'a > b > c';
   const fullPolicy: Policy = {
     ID: [
       {
-        '*': {
+        [path]: {
           reason: 'REASON',
           expires: new Date('2017-10-07T00:00:00.000Z'),
         },
@@ -252,12 +253,13 @@ test('snyk ignore - all options', async (t) => {
     ],
   };
   try {
-    fullPolicy.ID[0]['*'].created = new Date();
+    fullPolicy.ID[0][path].created = new Date();
     const dir = await makeTmpDirectory();
     await cli.ignore({
       id: 'ID',
       reason: 'REASON',
       expiry: new Date('2017-10-07'),
+      path,
       'policy-path': dir,
     });
     const pol = await policy.load(dir);
@@ -343,6 +345,104 @@ test('snyk ignore - not authorized', async (t) => {
     t.pass('no policy file saved');
   }
 });
+
+test('snyk ignore - several paths', async (t) => {
+  const clock = sinon.useFakeTimers(new Date(2016, 11, 1).getTime());
+  const paths = ['a > b > c', 'x > y > z'];
+
+  const ignoreParams = {
+    reason: 'REASON',
+    expires: new Date('2017-10-07T00:00:00.000Z'),
+    created: new Date(),
+  };
+
+  const fullPolicy: Policy = {
+    ID: [
+      {
+        [paths[0]]: ignoreParams,
+      },
+      {
+        [paths[1]]: ignoreParams,
+      },
+    ],
+  };
+
+  try {
+    const dir = await makeTmpDirectory();
+    await cli.ignore({
+      id: 'ID',
+      reason: 'REASON',
+      expiry: new Date('2017-10-07'),
+      path: paths[0],
+      'policy-path': dir,
+    });
+
+    await cli.ignore({
+      id: 'ID',
+      reason: 'REASON',
+      expiry: new Date('2017-10-07'),
+      path: paths[1],
+      'policy-path': dir,
+    });
+
+    const pol = await policy.load(dir);
+    t.deepEquals(pol.ignore, fullPolicy, 'policy written correctly');
+    clock.restore();
+  } catch (err) {
+    t.throws(err, 'ignore should succeed');
+  }
+});
+
+test('snyk ignore - updating with existing path', async (t) => {
+  const clock = sinon.useFakeTimers(new Date(2016, 11, 1).getTime());
+  const path = 'a > b > c';
+
+  const ignoreArgs1 = {
+    id: 'ID',
+    reason: 'REASON',
+    path,
+    expiry: new Date('2017-10-07T00:00:00.000Z'),
+  };
+
+  const ignoreArgs2 = {
+    ...ignoreArgs1,
+    reason: 'ANOTHER REASON',
+    expiry: new Date('2019-10-07T00:00:00.000Z'),
+  };
+
+  const fullPolicy: Policy = {
+    ID: [
+      {
+        [path]: {
+          reason: ignoreArgs2.reason,
+          expires: ignoreArgs2.expiry,
+          created: new Date(),
+        },
+      },
+    ],
+  };
+
+  try {
+    const dir = await makeTmpDirectory();
+    await cli.ignore({
+      ...ignoreArgs1,
+      'policy-path': dir,
+    });
+
+    await cli.ignore({
+      ...ignoreArgs2,
+      'policy-path': dir,
+    });
+
+    const pol = await policy.load(dir);
+    t.deepEquals(pol.ignore, fullPolicy, 'policy updated correctly');
+    clock.restore();
+  } catch (err) {
+    t.throws(err, 'ignore should succeed');
+  }
+});
+
+// test('snyk ignore - overriding paths with *');
 
 test('snyk policy', async (t) => {
   await cli.policy();
