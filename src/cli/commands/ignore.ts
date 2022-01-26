@@ -46,9 +46,15 @@ export default function ignore(options): Promise<MethodResult> {
         options.reason = 'None Given';
       }
 
+      const isPathProvided = !!options.path;
+      if (!isPathProvided) {
+        options.path = '*';
+      }
+
       debug(
-        'changing policy: ignore "%s", for all paths, reason: "%s", until: %o',
+        `changing policy: ignore "%s", for %s, reason: "%s", until: %o`,
         options.id,
+        isPathProvided ? 'all paths' : `path: '${options.path}'`,
         options.reason,
         options.expiry,
       );
@@ -62,15 +68,29 @@ export default function ignore(options): Promise<MethodResult> {
           throw Error('policyFile');
         })
         .then(async function ignoreIssue(pol) {
-          pol.ignore[options.id] = [
-            {
-              '*': {
-                reason: options.reason,
-                expires: options.expiry,
-                created: new Date(),
-              },
-            },
-          ];
+          let pathIndex = -1;
+          const ignoreParams = {
+            reason: options.reason,
+            expires: options.expiry,
+            created: new Date(),
+          };
+
+          if (!pol.ignore[options.id]?.length) {
+            pol.ignore[options.id] = [];
+          } else {
+            pathIndex = pol.ignore[options.id].findIndex(
+              (ignoreMetadata) => !!ignoreMetadata[options.path],
+            );
+          }
+
+          if (pathIndex !== -1) {
+            pol.ignore[options.id][pathIndex][options.path] = ignoreParams;
+          } else {
+            pol.ignore[options.id].push({
+              [options.path]: ignoreParams,
+            });
+          }
+
           return await policy.save(pol, options['policy-path']);
         });
     });
