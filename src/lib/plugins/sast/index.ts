@@ -58,6 +58,13 @@ export const codePlugin: EcosystemPlugin = {
         meta,
         prefix,
       );
+      if(options['sarif-file-output']) {
+        const sarifResult = jsonStringifyLargeObject(sarifTypedResult);
+        if (numOfIssues > 0) {
+          hasIssues(readableResult, sarifResult);
+        }
+        return { readableResult, sarifResult };
+      }
       if (numOfIssues > 0) {
         hasIssues(readableResult);
       }
@@ -100,9 +107,11 @@ function isUnauthorizedError(error: any): boolean {
   );
 }
 
-function hasIssues(readableResult: string): Error {
+function hasIssues(readableResult: string, sarifResult?: string): Error {
   const err = new Error(readableResult) as any;
   err.code = 'VULNS';
-
+  if(sarifResult !== undefined) {
+    err.sarifStringifiedResults = sarifResult;
+  }
   throw err;
 }
