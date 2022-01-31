@@ -442,8 +442,6 @@ test('snyk ignore - updating with existing path', async (t) => {
   }
 });
 
-// test('snyk ignore - overriding paths with *');
-
 test('snyk policy', async (t) => {
   await cli.policy();
   t.pass('policy called');
