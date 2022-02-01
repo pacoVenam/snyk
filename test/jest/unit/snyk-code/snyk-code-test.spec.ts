@@ -266,7 +266,7 @@ describe('Test snyk code', () => {
       code: true,
       _: [],
       _doubleDashArgs: [],
-      'sarif-file-output': 'test',
+      'sarif-file-output': 'test.json',
     };
 
     analyzeFoldersMock.mockResolvedValue(sampleAnalyzeFoldersResponse);
@@ -281,7 +281,7 @@ describe('Test snyk code', () => {
     try {
       await snykTest('some/path', options);
     } catch (error) {
-      // check if error has sarif result
+      // check if stringified sarif result exists
       expect(error.sarifStringifiedResults).toBeTruthy();
 
       const errSarifResult = error.sarifStringifiedResults.trim();
