@@ -1,25 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-LATEST_PACKAGE_VERSION=$(npm view snyk version)
-echo "LATEST_PACKAGE_VERSION: ${LATEST_PACKAGE_VERSION}"
-
-echo "versions before modifying:"
-cat ./lerna.json ./package.json ./packages/snyk-protect/package.json ./packages/snyk-fix/package.json | grep version
-
-if [[ $(uname -s) == "Darwin" ]];then
-    echo "this is Mac"
-    sed -i "" "s|1.0.0-monorepo|${LATEST_PACKAGE_VERSION}|g" ./lerna.json
-    sed -i "" "s|1.0.0-monorepo|${LATEST_PACKAGE_VERSION}|g" ./package.json
-    sed -i "" "s|1.0.0-monorepo|${LATEST_PACKAGE_VERSION}|g" ./packages/snyk-protect/package.json
-    sed -i "" "s|1.0.0-monorepo|${LATEST_PACKAGE_VERSION}|g" ./packages/snyk-fix/package.json
+release_branch="master"
+if [ "${CIRCLE_BRANCH}" == "${release_branch}" ]; then
+  ./release-scripts/update-versions.sh
 else
-    echo "this is Linux"
-    sed -i "s|1.0.0-monorepo|${LATEST_PACKAGE_VERSION}|g" ./lerna.json
-    sed -i "s|1.0.0-monorepo|${LATEST_PACKAGE_VERSION}|g" ./package.json
-    sed -i "s|1.0.0-monorepo|${LATEST_PACKAGE_VERSION}|g" ./packages/snyk-protect/package.json
-    sed -i "s|1.0.0-monorepo|${LATEST_PACKAGE_VERSION}|g" ./packages/snyk-fix/package.json
+  ./release-scripts/update-dev-versions.sh
 fi
 
-echo "versions after modifying:"
-cat ./lerna.json ./package.json ./packages/snyk-protect/package.json ./packages/snyk-fix/package.json | grep version
+npx ts-node ./release-scripts/prune-dependencies-in-packagejson.ts
