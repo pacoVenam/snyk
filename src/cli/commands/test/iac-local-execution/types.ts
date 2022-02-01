@@ -76,6 +76,7 @@ export interface IacCustomRules {
 
 export interface IacEntitlements {
   infrastructureAsCode?: boolean;
+  iacDriftEntitlement?: boolean;
   iacCustomRulesEntitlement?: boolean;
 }
 
